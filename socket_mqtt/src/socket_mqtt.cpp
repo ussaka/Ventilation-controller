@@ -28,6 +28,17 @@
 #include "ModbusMaster.h"
 #include "ModbusRegister.h"
 #include "MQTTClient.h"
+#include "DigitalIoPin.h"
+#include "LiquidCrystal.h"
+
+
+
+#define SSID	    "SmartIotMQTT"
+#define PASSWORD    "SmartIot"
+#define BROKER_IP   "192.168.1.254"
+#define BROKER_PORT  1883
+
+
 
 // TODO: insert other definitions and declarations here
 static volatile int counter;
@@ -98,6 +109,27 @@ int main(void) {
 
 	printf("\nBoot\n");
 
+	DigitalIoPin *rs = new DigitalIoPin(0, 29, DigitalIoPin::output);
+	DigitalIoPin *en = new DigitalIoPin(0, 9, DigitalIoPin::output);
+	DigitalIoPin *d4 = new DigitalIoPin(0, 10, DigitalIoPin::output);
+	DigitalIoPin *d5 = new DigitalIoPin(0, 16, DigitalIoPin::output);
+	DigitalIoPin *d6 = new DigitalIoPin(1, 3, DigitalIoPin::output);
+	DigitalIoPin *d7 = new DigitalIoPin(0, 0, DigitalIoPin::output);
+	LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+	// configure display geometry
+	lcd.begin(16, 2);
+	// set the cursor to column 0, line 1
+	// (note: line 1 is the second row, since counting begins with 0):
+	lcd.setCursor(0, 0);
+	// Print a message to the LCD.
+	lcd.print(SSID);
+	lcd.setCursor(0, 1);
+	lcd.print(BROKER_IP);
+	//char tmp[8];
+	//sprintf(tmp, ":%d", BROKER_PORT);
+	//lcd.print(tmp);
+
+
 	//abbModbusTest();
 	//socketTest();
 	mqttTest();
@@ -117,7 +149,7 @@ int main(void) {
 void socketTest()
 {
 
-	esp_socket("SmartIotMQTT","SmartIot");
+	esp_socket(SSID, PASSWORD);
 
 	const char *http_request = "GET / HTTP/1.0\r\n\r\n"; // HTTP requires cr-lf to end a line
 
@@ -150,7 +182,7 @@ void socketTest()
 void messageArrived(MessageData* data)
 {
 	printf("Message arrived on topic %.*s: %.*s\n", data->topicName->lenstring.len, data->topicName->lenstring.data,
-		data->message->payloadlen, (char *)data->message->payload);
+			data->message->payloadlen, (char *)data->message->payload);
 }
 
 void mqttTest()
@@ -160,14 +192,14 @@ void mqttTest()
 	Network network;
 	unsigned char sendbuf[256], readbuf[2556];
 	int rc = 0,
-		count = 0;
+			count = 0;
 	MQTTPacket_connectData connectData = MQTTPacket_connectData_initializer;
 
-	NetworkInit(&network,"SmartIotMQTT","SmartIot");
+	NetworkInit(&network,SSID,PASSWORD);
 	MQTTClientInit(&client, &network, 30000, sendbuf, sizeof(sendbuf), readbuf, sizeof(readbuf));
 
-	char* address = (char *)"192.168.1.254";
-	if ((rc = NetworkConnect(&network, address, 1883)) != 0)
+	char* address = (char *)BROKER_IP;
+	if ((rc = NetworkConnect(&network, address, BROKER_PORT)) != 0)
 		printf("Return code from network connect is %d\n", rc);
 
 
