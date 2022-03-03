@@ -10,9 +10,9 @@
 
 SerialPort::SerialPort() {
 	LpcPinMap none = {-1, -1}; // unused pin has negative values in it
-	LpcPinMap txpin = { 1, 9 }; // transmit pin that goes to Arduino header TX pin
-	LpcPinMap rxpin = { 1, 10 }; // receive pin that goes to Arduino header RX pin
-	LpcPinMap rtspin = { 0, 29 }; // handshake pin that is used to set tranmitter direction 
+	LpcPinMap txpin = { 0, 28 }; // transmit pin that goes to rs485 driver chip
+	LpcPinMap rxpin = { 0, 24 }; // receive pin that goes to rs485 driver chip
+	LpcPinMap rtspin = { 1, 0 }; // handshake pin that is used to set tranmitter direction
 	LpcUartConfig cfg = { LPC_USART1, 9600, UART_CFG_DATALEN_8 | UART_CFG_PARITY_NONE | UART_CFG_STOPLEN_2, true, txpin, rxpin, rtspin, none };
 	u = new LpcUart(cfg);
 }
