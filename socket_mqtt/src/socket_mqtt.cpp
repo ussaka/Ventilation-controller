@@ -83,6 +83,7 @@ uint32_t millis() {
 void abbModbusTest();
 void socketTest();
 void mqttTest();
+void produalModbusTest();
 
 
 #if 1
@@ -132,7 +133,9 @@ int main(void) {
 
 	//abbModbusTest();
 	//socketTest();
-	mqttTest();
+	//mqttTest();
+	produalModbusTest();
+
 
 	// Enter an infinite loop, just incrementing a counter
 	while(1) {
@@ -177,7 +180,7 @@ void socketTest()
 }
 #endif
 
-#if 1
+#if 0
 
 void messageArrived(MessageData* data)
 {
@@ -444,6 +447,29 @@ void abbModbusTest()
 		// frequency is scaled:
 		// 20000 = 50 Hz, 0 = 0 Hz, linear scale 400 units/Hz
 		setFrequency(node, fa[i]);
+	}
+}
+#endif
+
+#if 1
+void produalModbusTest()
+{
+	ModbusMaster node(1); // Create modbus object that connects to slave id 1
+	node.begin(9600); // set transmission rate - other parameters are set inside the object and can't be changed here
+
+	ModbusRegister AO1(&node, 0);
+
+	const uint16_t fa[20] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 };
+
+	while (1) {
+
+		for(int i = 0; i < 20; ++i) {
+			AO1 = fa[i]*100;
+			// just print the value without checking if we got a -1
+			printf("AO1=%4d\n", (int) fa[i]*100);
+
+			Sleep(30000);
+		}
 	}
 }
 #endif
