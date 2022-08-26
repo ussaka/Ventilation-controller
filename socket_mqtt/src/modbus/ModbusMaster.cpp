@@ -55,6 +55,7 @@ ModbusMaster::ModbusMaster(void)
 {
   _u8SerialPort = 0;
   _u8MBSlave = 1;
+  _u16BaudRate = 0;
 }
 
 
@@ -71,6 +72,7 @@ ModbusMaster::ModbusMaster(uint8_t u8MBSlave)
 {
   _u8SerialPort = 0;
   _u8MBSlave = u8MBSlave;
+  _u16BaudRate = 0;
 }
 
 
@@ -88,6 +90,7 @@ ModbusMaster::ModbusMaster(uint8_t u8SerialPort, uint8_t u8MBSlave)
 {
   _u8SerialPort = (u8SerialPort > 3) ? 0 : u8SerialPort;
   _u8MBSlave = u8MBSlave;
+  _u16BaudRate = 0;
 }
 
 
@@ -121,6 +124,7 @@ void ModbusMaster::begin(uint16_t u16BaudRate)
   _u8TransmitBufferIndex = 0;
   u16TransmitBufferLength = 0;
 
+#if 0
   switch(_u8SerialPort)
   {
 #if defined(UBRR1H)
@@ -143,13 +147,18 @@ void ModbusMaster::begin(uint16_t u16BaudRate)
 
     case 0:
     default:
-      //MBSerial = &Serial;
+      MBSerial = &Serial;
       break;
   }
+#endif
 
   if(MBSerial == NULL) MBSerial = new SerialPort;
-  MBSerial->begin(u16BaudRate);
+  if(u16BaudRate !=  _u16BaudRate) {
+	  _u16BaudRate = u16BaudRate;
+	  MBSerial->begin(u16BaudRate);
+  }
   _idle = NULL;
+
 #if __MODBUSMASTER_DEBUG__
 //  pinMode(4, OUTPUT);
 //  pinMode(5, OUTPUT);
