@@ -12,14 +12,15 @@
 
 class ModbusRegister {
 public:
-	ModbusRegister(ModbusMaster *master, int address);
+	ModbusRegister(ModbusMaster *master, int address, bool holdingRegister = true);
 	ModbusRegister(const ModbusRegister &)  = delete;
 	virtual ~ModbusRegister();
-	operator int();
-	const ModbusRegister &operator=(int value);
+	int read();
+	void write(int value);
 private:
 	ModbusMaster *m;
 	int addr;
+	bool hr;
 };
 
 #endif /* MODBUSREGISTER_H_ */
