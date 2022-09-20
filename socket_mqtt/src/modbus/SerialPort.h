@@ -22,7 +22,7 @@ public:
 	int print(int val, int format);
 	void flush();
 private:
-	LpcUart *u;
+	static LpcUart *u;
 };
 
 #endif /* SERIALPORT_H_ */
