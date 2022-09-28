@@ -16,11 +16,33 @@
 #endif
 #endif
 
+#include "I2C.h"
+
 #include <cr_section_macros.h>
+#include <atomic>
 
-// TODO: insert other include files here
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-// TODO: insert other definitions and declarations here
+std::atomic_int counter;
+
+void SysTick_Handler(void)
+{
+	if(counter > 0)
+		counter--;
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+void Sleep(int ms)
+{
+	counter = ms;
+	while(counter > 0)
+		__WFI();
+}
 
 int main(void) {
 
@@ -28,24 +50,44 @@ int main(void) {
     // Read clock settings and update SystemCoreClock variable
     SystemCoreClockUpdate();
 #if !defined(NO_BOARD_LIB)
-    // Set up and initialize all required blocks and
-    // functions related to the board hardware
     Board_Init();
-    // Set the LED to the state of "On"
-    Board_LED_Set(0, true);
 #endif
 #endif
+	uint32_t sysTickRate;
+	Chip_Clock_SetSysTickClockDiv(1);
+	sysTickRate = Chip_Clock_GetSysTickClockRate();
+	SysTick_Config(sysTickRate / 1000);
 
-    // TODO: insert code here
+	const int scaleFactor = 240;
+	const float altitudeCorrection = 0.95f;
 
-    // Force the counter to be placed into memory
-    volatile static int i = 0 ;
-    // Enter an infinite loop, just incrementing a counter
-    while(1) {
-        i++ ;
-        // "Dummy" NOP to allow source level single
-        // stepping of tight while() loop
-        __asm volatile ("nop");
+    I2C i2c(0x40);
+
+    while(1)
+    {
+    	i2c.write(0XF1);
+
+    	bool ok;
+    	const uint8_t* resp = i2c.getResponse(3, ok);
+
+    	if(ok)
+    	{
+    		Board_UARTPutSTR("Response\r\n");
+    		int16_t real = resp[0] << 8 | resp[1];
+    		float result = (static_cast <float> (real) / scaleFactor) * altitudeCorrection;
+
+			char buf[16];
+			snprintf(buf, 16, "%.2f\r\n", result);
+			Board_UARTPutSTR(buf);
+    	}
+
+    	else
+    	{
+    		Board_UARTPutSTR("No response\r\n");
+    	}
+
+    	Sleep(500);
     }
+
     return 0 ;
 }
