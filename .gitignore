@@ -1,3 +1,5 @@
+Debug/
+
 #General build artifacts
 *.mk
 *.o
