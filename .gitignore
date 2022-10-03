@@ -23,6 +23,7 @@ Debug/
 *.bin
 *.log
 *.su
+.settings
 
 #MDK-ARM
 *.__i
