@@ -17,6 +17,10 @@
 #endif
 
 #include "I2C.h"
+#include "external/ITM_Wrapper.h"
+
+#include <modbus/ModbusMaster.h>
+#include <modbus/ModbusRegister.h>
 
 #include <cr_section_macros.h>
 #include <atomic>
@@ -26,9 +30,11 @@ extern "C" {
 #endif
 
 std::atomic_int counter;
+static volatile uint32_t systicks;
 
 void SysTick_Handler(void)
 {
+	systicks++;
 	if(counter > 0)
 		counter--;
 }
@@ -36,6 +42,11 @@ void SysTick_Handler(void)
 #ifdef __cplusplus
 }
 #endif
+
+uint32_t millis()
+{
+	return systicks;
+}
 
 void Sleep(int ms)
 {
@@ -62,9 +73,27 @@ int main(void) {
 	const float altitudeCorrection = 0.95f;
 
     I2C i2c(0x40);
+    ITM_Wrapper output;
+
+	ModbusMaster node(1); // Create modbus object that connects to slave id 1
+	node.begin(9600); // set transmission rate - other parameters are set inside the object and can't be changed here
+
+	ModbusRegister AO1(&node, 0);
+	ModbusRegister DI1(&node, 4, false);
+
+	const uint16_t fa[20] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 };
+
+	output.print("Test");
+	unsigned index = 0;
+	bool right = true;
 
     while(1)
     {
+		AO1.write(5 * 100);
+
+		index += right ? +1 : -1;
+		if(index >= 10 || index == 0) right = !right;
+
     	i2c.write(0XF1);
 
     	bool ok;
@@ -72,21 +101,20 @@ int main(void) {
 
     	if(ok)
     	{
-    		Board_UARTPutSTR("Response\r\n");
     		int16_t real = resp[0] << 8 | resp[1];
     		float result = (static_cast <float> (real) / scaleFactor) * altitudeCorrection;
 
 			char buf[16];
-			snprintf(buf, 16, "%.2f\r\n", result);
+			output.print("Result ", result);
 			Board_UARTPutSTR(buf);
     	}
 
     	else
     	{
-    		Board_UARTPutSTR("No response\r\n");
+    		output.print("No response");
     	}
 
-    	Sleep(500);
+    	Sleep(1000);
     }
 
     return 0 ;
