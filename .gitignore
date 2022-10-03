@@ -24,6 +24,7 @@ Debug/
 *.log
 *.su
 .settings
+.cproject
 
 #MDK-ARM
 *.__i
