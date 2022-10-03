@@ -75,25 +75,42 @@ int main(void) {
     I2C i2c(0x40);
     ITM_Wrapper output;
 
-	ModbusMaster node(1); // Create modbus object that connects to slave id 1
-	node.begin(9600); // set transmission rate - other parameters are set inside the object and can't be changed here
+	ModbusMaster fan(1);
+	fan.begin(9600);
 
-	ModbusRegister AO1(&node, 0);
-	ModbusRegister DI1(&node, 4, false);
+	ModbusRegister AO1(&fan, 0);
+	ModbusRegister DI1(&fan, 4, false);
 
-	const uint16_t fa[20] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 };
+	ModbusMaster co2(240);
+	co2.begin(9600);
+
+	ModbusMaster hmp(241);
+	hmp.begin(9600);
+
+	ModbusRegister co2Data(&co2, 0x100, false);
+
+	//	Relative humidity
+	ModbusRegister humidityData(&hmp, 0x100, false);
+	ModbusRegister temperatureData(&hmp, 0x101, false);
+
+	ModbusRegister co2Status(&co2, 0x800, false);	// Absolute humidity
+	ModbusRegister hmpStatus(&hmp, 0x200, false);	// Absolute humidity
+
+	const int co2Ok = 0;
+	const int hmpOk = 1;
 
 	output.print("Test");
 	unsigned index = 0;
 	bool right = true;
 
+	const float goal = 60;
+	float speed = 100;
+
+	AO1.write(0);
+	Sleep(1000);
+
     while(1)
     {
-		AO1.write(5 * 100);
-
-		index += right ? +1 : -1;
-		if(index >= 10 || index == 0) right = !right;
-
     	i2c.write(0XF1);
 
     	bool ok;
@@ -104,9 +121,19 @@ int main(void) {
     		int16_t real = resp[0] << 8 | resp[1];
     		float result = (static_cast <float> (real) / scaleFactor) * altitudeCorrection;
 
-			char buf[16];
 			output.print("Result ", result);
-			Board_UARTPutSTR(buf);
+
+			if(result < goal)
+			{
+				speed += 5;
+				AO1.write(speed);
+			}
+
+			else
+			{
+				speed -= 5;
+				AO1.write(speed);
+			}
     	}
 
     	else
@@ -114,7 +141,7 @@ int main(void) {
     		output.print("No response");
     	}
 
-    	Sleep(1000);
+    	Sleep(25);
     }
 
     return 0 ;
