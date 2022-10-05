@@ -16,7 +16,7 @@ public:
 	LcdUi();
 	virtual ~LcdUi();
 	void read_btns();
-	void update(std::string val);
+	int update(std::string val);
 private:
 	//buttons
 	DigitalIoPin sw_a2;
@@ -34,6 +34,7 @@ private:
 
 	LiquidCrystal lcd;
 	int menu_pos = 0;
+	bool set_val = false;
 };
 
 #endif /* LCDUI_H_ */
