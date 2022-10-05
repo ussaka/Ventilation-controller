@@ -17,6 +17,7 @@
 #endif
 
 #include "I2C.h"
+#include "Networking.h"
 #include "external/ITM_Wrapper.h"
 
 #include <modbus/ModbusMaster.h>
@@ -43,10 +44,10 @@ void SysTick_Handler(void)
 }
 #endif
 
-uint32_t millis()
-{
-	return systicks;
-}
+#include "systick.h"
+
+uint32_t millis() { return systicks; }
+uint32_t get_ticks() { return systicks; }
 
 void Sleep(int ms)
 {
@@ -73,7 +74,16 @@ int main(void) {
 	const float altitudeCorrection = 0.95f;
 
     I2C i2c(0x40);
+
     ITM_Wrapper output;
+	output.print("Test");
+
+    Networking net("OnePlus Nord N10 5G", "salsasana666", "192.168.83.223");
+
+    net.subscribe("controller/settings", [&output](const std::string& data)
+	{
+    	output.print("MQTT message: ", data);
+	});
 
 	ModbusMaster fan(1);
 	fan.begin(9600);
@@ -99,7 +109,6 @@ int main(void) {
 	const int co2Ok = 0;
 	const int hmpOk = 1;
 
-	output.print("Test");
 	unsigned index = 0;
 	bool right = true;
 
@@ -111,6 +120,9 @@ int main(void) {
 
     while(1)
     {
+		AO1.write(0);
+		continue;
+
     	i2c.write(0XF1);
 
     	bool ok;

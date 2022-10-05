@@ -21,8 +21,7 @@
 #include "systick.h"
 #include "esp8266_socket.h"
 
-
-
+extern uint32_t get_ticks(void);
 
 void TimerCountdownMS(Timer* timer, unsigned int timeout_ms)
 {

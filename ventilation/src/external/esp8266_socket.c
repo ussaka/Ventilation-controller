@@ -22,8 +22,7 @@
 
 typedef int EspSocket_t;
 
-uint32_t get_ticks(void); // defined externally
-
+extern uint32_t get_ticks(void); // defined externally
 
 #define I_DONT_USE(x) (void) x
 #define DEBUGP( ... ) printf( __VA_ARGS__ )
