@@ -34,6 +34,7 @@
   #define DLLExport
 #endif
 
+#include "MQTT_lpc1549.h"
 #include "MQTTPacket.h"
 #if 0
 /* KRL fix begin */
@@ -74,11 +75,11 @@ typedef struct Network
 
 /* The Timer structure must be defined in the platform specific header,
  * and have the following functions to operate on it.  */
-extern void TimerInit(Timer*);
-extern char TimerIsExpired(Timer*);
-extern void TimerCountdownMS(Timer*, unsigned int);
-extern void TimerCountdown(Timer*, unsigned int);
-extern int TimerLeftMS(Timer*);
+void TimerInit(Timer* t);
+char TimerIsExpired(Timer* t);
+void TimerCountdownMS(Timer* t, unsigned int ms);
+void TimerCountdown(Timer* t, unsigned int c);
+int TimerLeftMS(Timer* t);
 
 typedef struct MQTTMessage
 {
