@@ -10,19 +10,27 @@
 
 #include "DigitalIoPin.h"
 #include "LiquidCrystal.h"
+#include "NumericProperty.h"
+#include "Menu.h"
 
 class LcdUi {
 public:
 	LcdUi();
 	virtual ~LcdUi();
 	void read_btns();
-	int update(std::string val);
+	void update(void);
 private:
+	struct button {
+		button(int port, int pin) :
+				btn(port, pin, DigitalIoPin::pullup, true) {
+		}
+		;
+		DigitalIoPin btn;
+		bool isPressed = false;
+	};
+
 	//buttons
-	DigitalIoPin sw_a2;
-	DigitalIoPin sw_a3;
-	DigitalIoPin sw_a4;
-	DigitalIoPin sw_a5;
+	button buttons[4];
 
 	// Lcd pins
 	DigitalIoPin rs;
