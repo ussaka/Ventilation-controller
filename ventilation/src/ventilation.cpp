@@ -18,6 +18,7 @@
 
 #include "I2C.h"
 #include "Menu.h"
+#include "JSON.h"
 #include "Networking.h"
 #include "NumericProperty.h"
 #include "external/ITM_Wrapper.h"
@@ -75,6 +76,10 @@ int main(void) {
 	const int scaleFactor = 240;
 	const float altitudeCorrection = 0.95f;
 
+    bool isAutomatic = false;
+	int goal = 0;
+	int speed = 0;
+
     I2C i2c(0x40);
 
     ITM_Wrapper output;
@@ -82,21 +87,17 @@ int main(void) {
 
     Networking net("OnePlus Nord N10 5G", "salsasana666", "192.168.83.223");
 
-    net.subscribe("controller/settings", [&output](const std::string& data)
-	{
-	});
-
 	ModbusMaster fan(1);
 	fan.begin(9600);
-
-	ModbusRegister AO1(&fan, 0);
-	ModbusRegister DI1(&fan, 4, false);
 
 	ModbusMaster co2(240);
 	co2.begin(9600);
 
 	ModbusMaster hmp(241);
 	hmp.begin(9600);
+
+	ModbusRegister AO1(&fan, 0);
+	AO1.write(0);
 
 	ModbusRegister co2Data(&co2, 0x100, false);
 
@@ -107,24 +108,39 @@ int main(void) {
 	ModbusRegister co2Status(&co2, 0x800, false);	// Absolute humidity
 	ModbusRegister hmpStatus(&hmp, 0x200, false);	// Absolute humidity
 
-	const int co2Ok = 0;
-	const int hmpOk = 1;
+	net.subscribe("controller/settings", [&](const std::string& data)
+	{
+    	output.print("DATA '", data, "'");
+    	JSON json(data);
 
-	unsigned index = 0;
-	bool right = true;
+    	std::string key;
+    	std::string value;
 
-	const float goal = 60;
-	float speed = 100;
+    	while(json.next(key, value))
+		{
+    		if(key == "auto")
+    			isAutomatic = value == "true";
 
-	AO1.write(0);
-	Sleep(1000);
+    		else if(key == "pressure")
+    			goal = atoi(value.c_str());
+
+    		else if(key == "speed")
+			{
+    			speed = atoi(value.c_str()) * 10;
+    			AO1.write(speed);
+			}
+		}
+	});
+
+	unsigned samples = 0;
+	int result = 0;
+
+	unsigned elapsed = 0;
 
     while(1)
     {
     	Networking::poll();
-
-		AO1.write(0);
-		continue;
+		JSON status;
 
     	i2c.write(0XF1);
 
@@ -133,21 +149,23 @@ int main(void) {
 
     	if(ok)
     	{
+    		//	What's the pressure according to the sensor?
     		int16_t real = resp[0] << 8 | resp[1];
-    		float result = (static_cast <float> (real) / scaleFactor) * altitudeCorrection;
+    		result = (static_cast <float> (real) / scaleFactor) * altitudeCorrection;
 
-			output.print("Result ", result);
-
-			if(result < goal)
+			if(isAutomatic)
 			{
-				speed += 5;
-				AO1.write(speed);
-			}
+				if(result < goal)
+				{
+					speed += 5;
+					AO1.write(speed);
+				}
 
-			else
-			{
-				speed -= 5;
-				AO1.write(speed);
+				else
+				{
+					speed -= 5;
+					AO1.write(speed);
+				}
 			}
     	}
 
@@ -156,7 +174,37 @@ int main(void) {
     		output.print("No response");
     	}
 
+    	if(elapsed >= 250)
+    	{
+    		output.print("Sending status");
+
+			status.add("nr", samples);
+    		status.add("pressure", result);
+
+    		if(isAutomatic) status.add("setpoint", goal);
+    		else status.add("setpoint", static_cast <float> (speed) / 10);
+
+    		status.add("speed", static_cast <float> (speed) / 10);
+    		status.addLiteral("auto", isAutomatic ? "true" : "false");
+    		status.addLiteral("error", "false");
+
+			// FIXME Read status before reading value
+    		int co2Value = co2Data.read();
+    		int rhValue = humidityData.read();
+    		int tempValue = temperatureData.read();
+
+    		status.add("co2", co2Value);
+    		status.add("rh", rhValue);
+    		status.add("temp", tempValue);
+
+    		net.publish("controller/status", status.toString());
+			samples++;
+
+    		elapsed = 0;
+    	}
+
     	Sleep(25);
+    	elapsed+=25;
     }
 
     return 0 ;
