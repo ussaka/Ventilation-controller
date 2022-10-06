@@ -3,7 +3,7 @@
 
 #include "Property.h"
 #include "LiquidCrystal.h"
-#include "ITM_Wrapper.h"
+#include "external/ITM_Wrapper.h"
 
 class Menu
 {
@@ -27,7 +27,7 @@ private:
 	LiquidCrystal& lcd;
 	void clearDisplay();
 
-	const static unsigned maxProperties = 5;
+	const static unsigned maxProperties = 10;
 	unsigned count = 0;
 
 	unsigned selected = 0;
