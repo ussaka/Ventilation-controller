@@ -1,6 +1,9 @@
+#include "external/ITM_Wrapper.h"
 #include "Networking.h"
 
 #include <cstring>
+
+static ITM_Wrapper output;
 
 class NetworkingStorage
 {
@@ -12,6 +15,16 @@ public:
 
 		instances[count] = networking;
 		count++;
+	}
+
+	static void poll()
+	{
+		for(unsigned i = 0; i < count; i++)
+		{
+			int rc = MQTTYield(&instances[i]->client, 100);
+			if(rc != 0)
+				output.print("[", i, "] Return code from yield is ", rc);
+		}
 	}
 
 	static void send(MessageData* data)
@@ -107,4 +120,9 @@ bool Networking::subscribe(const char* topic, const MessageCallback& cb)
 	output.print("Subscribed to ", topic);
 
 	return true;
+}
+
+void Networking::poll()
+{
+	NetworkingStorage::poll();
 }

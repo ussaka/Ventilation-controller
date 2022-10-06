@@ -17,7 +17,9 @@
 #endif
 
 #include "I2C.h"
+#include "Menu.h"
 #include "Networking.h"
+#include "NumericProperty.h"
 #include "external/ITM_Wrapper.h"
 
 #include <modbus/ModbusMaster.h>
@@ -82,7 +84,6 @@ int main(void) {
 
     net.subscribe("controller/settings", [&output](const std::string& data)
 	{
-    	output.print("MQTT message: ", data);
 	});
 
 	ModbusMaster fan(1);
@@ -120,6 +121,8 @@ int main(void) {
 
     while(1)
     {
+    	Networking::poll();
+
 		AO1.write(0);
 		continue;
 
