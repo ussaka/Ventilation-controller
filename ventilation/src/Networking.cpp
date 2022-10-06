@@ -56,8 +56,6 @@ unsigned NetworkingStorage::count = 0;
 
 void messageArrived(MessageData* data)
 {
-    static ITM_Wrapper output;
-    output.print("RECEIVED MESSAGE");
 	NetworkingStorage::send(data);
 }
 
@@ -95,6 +93,25 @@ Networking::Networking(const char* ssid, const char* pass, const char* broker)
 void Networking::close()
 {
 	NetworkDisconnect(&network);
+}
+
+void Networking::publish(const char* topic, const std::string& data)
+{
+	MQTTMessage message;
+	char payload[256];
+
+	message.qos = QOS1;
+	message.retained = 0;
+	message.payload = payload;
+	sprintf(payload, "%s", data.c_str());
+	message.payloadlen = strlen(payload);
+
+	int rc = MQTTPublish(&client, topic, &message);
+	if(rc != 0)
+	{
+		output.print("Return code from MQTT publish is ", rc);
+		return;
+	}
 }
 
 bool Networking::subscribe(const char* topic, const MessageCallback& cb)

@@ -14,7 +14,9 @@ class Networking
 {
 public:
 	Networking(const char* ssid, const char* pass, const char* broker);
+
 	void close();
+	void publish(const char* topic, const std::string& data);
 
 	friend class NetworkingStorage;
 
