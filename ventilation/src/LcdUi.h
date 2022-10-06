@@ -41,8 +41,14 @@ private:
 	DigitalIoPin d7;
 
 	LiquidCrystal lcd;
-	int menu_pos = 0;
-	bool set_val = false;
+
+	Menu menu;
+	NumericProperty<int> mode;
+	NumericProperty<int> setpoint;
+	NumericProperty<float> temp;
+	NumericProperty<float> speed;
+	NumericProperty<float> co2;
+	NumericProperty<float> rh;
 };
 
 #endif /* LCDUI_H_ */
