@@ -24,7 +24,7 @@ public:
 	const static unsigned maxInstances = 5;
 
 	bool subscribe(const char* topic, const MessageCallback& cb);
-	static void poll();
+	static void poll(unsigned ms);
 
 private:
 	Network network;
