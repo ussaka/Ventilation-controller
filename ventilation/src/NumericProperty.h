@@ -47,6 +47,11 @@ public:
 			value = max;
 	}
 
+	void setValue(int val) {
+		value = val;
+		oldValue = value;
+	}
+
 private:
 	std::string oneDec(T value) {
 		std::string str = std::to_string(value);
