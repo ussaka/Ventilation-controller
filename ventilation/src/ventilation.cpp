@@ -22,6 +22,7 @@
 #include "Networking.h"
 #include "NumericProperty.h"
 #include "external/ITM_Wrapper.h"
+#include "LcdUi.h"
 
 #include <modbus/ModbusMaster.h>
 #include <modbus/ModbusRegister.h>
@@ -137,6 +138,8 @@ int main(void) {
 
 	unsigned elapsed = 0;
 
+	LcdUi ui;
+
     while(1)
     {
     	Networking::poll();
@@ -202,7 +205,7 @@ int main(void) {
 
     		elapsed = 0;
     	}
-
+    	ui.update();
     	Sleep(25);
     	elapsed+=25;
     }

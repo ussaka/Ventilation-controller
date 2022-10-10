@@ -13,8 +13,9 @@ LcdUi::LcdUi() :
 				DigitalIoPin::output), d5(0, 16, DigitalIoPin::output), d6(1, 3,
 				DigitalIoPin::output), d7(0, 0, DigitalIoPin::output), lcd(&rs,
 				&en, &d4, &d5, &d6, &d7), menu(lcd), mode("mode", 0, 1), setpoint(
-				"setpoint", 0, 120), temp("temp", 0, 50), speed("speed", 0,
-				100), co2("co2", 0, 100), rh("rh", 0, 100) {
+				"setpoint", 0, 120), temp("temp", 0, 50, true), speed("speed",
+				0, 100, true), co2("co2", 0, 100, true), rh("rh", 0, 100, true), pressure(
+				"pressure", 0, 100, true) {
 	// configure display geometry
 	lcd.begin(16, 2);
 	menu.addProperty(mode);
@@ -23,6 +24,7 @@ LcdUi::LcdUi() :
 	menu.addProperty(speed);
 	menu.addProperty(co2);
 	menu.addProperty(rh);
+	menu.addProperty(pressure);
 
 	menu.display();
 }
@@ -36,10 +38,10 @@ void LcdUi::update(void) {
 
 			switch (i) {
 			case 0: // sw_a2
-				menu.send(Menu::Event::Down);
+				menu.send(Menu::Event::Up);
 				break;
 			case 1: // sw_a3
-				menu.send(Menu::Event::Up);
+				menu.send(Menu::Event::Down);
 				break;
 			case 2: // sw_a4
 				menu.send(Menu::Event::Confirm);

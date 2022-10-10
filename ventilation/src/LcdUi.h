@@ -49,6 +49,7 @@ private:
 	NumericProperty<float> speed;
 	NumericProperty<float> co2;
 	NumericProperty<float> rh;
+	NumericProperty<float> pressure;
 };
 
 #endif /* LCDUI_H_ */

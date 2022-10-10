@@ -32,7 +32,9 @@ void Menu::send(Event event)
 		case Event::Back: break;
 
 		case Event::Confirm:
-			editing = true;
+			if (!properties[selected]->isConstant()) {
+				editing = true;
+			}
 		break;
 	}
 
