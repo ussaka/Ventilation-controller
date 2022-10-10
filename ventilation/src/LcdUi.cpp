@@ -13,7 +13,7 @@ LcdUi::LcdUi() :
 				DigitalIoPin::output), d5(0, 16, DigitalIoPin::output), d6(1, 3,
 				DigitalIoPin::output), d7(0, 0, DigitalIoPin::output), lcd(&rs,
 				&en, &d4, &d5, &d6, &d7), menu(lcd), mode("mode", 0, 1), setpoint(
-				"setpoint", 0, 120), temp("temp", 0, 50, true), speed("speed",
+				"setpoint", 0, 120), temp("temp", -30, 30, true), speed("speed",
 				0, 100, true), co2("co2", 0, 100, true), rh("rh", 0, 100, true), pressure(
 				"pressure", 0, 100, true) {
 	// configure display geometry
@@ -29,7 +29,15 @@ LcdUi::LcdUi() :
 	menu.display();
 }
 
-void LcdUi::update(void) {
+void LcdUi::update(bool &_mode, int &_goal, int _temp, int _speed, int _co2, int _rh, int _pressure) {
+	mode.setValue(_mode);
+	setpoint.setValue(_goal);
+	temp.setValue(_temp);
+	speed.setValue(_speed);
+	co2.setValue(_co2);
+	rh.setValue(_rh);
+	pressure.setValue(_pressure);
+
 	for (int i = 0; i < 4; i++) {
 		if (buttons[i].btn.read()) {
 			buttons[i].isPressed = true;
@@ -52,6 +60,8 @@ void LcdUi::update(void) {
 			}
 		}
 	}
+	_mode = mode.getRealValue();
+	_goal = setpoint.getRealValue();
 }
 
 LcdUi::~LcdUi() {
