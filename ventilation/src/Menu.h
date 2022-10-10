@@ -27,7 +27,7 @@ private:
 	LiquidCrystal& lcd;
 	void clearDisplay();
 
-	const static unsigned maxProperties = 5;
+	const static unsigned maxProperties = 10;
 	unsigned count = 0;
 
 	unsigned selected = 0;
