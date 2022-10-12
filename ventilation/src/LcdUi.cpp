@@ -13,9 +13,9 @@ LcdUi::LcdUi() :
 				DigitalIoPin::output), d5(0, 16, DigitalIoPin::output), d6(1, 3,
 				DigitalIoPin::output), d7(0, 0, DigitalIoPin::output), lcd(&rs,
 				&en, &d4, &d5, &d6, &d7), menu(lcd), mode("mode", 0, 1), setpoint(
-				"setpoint", 0, 120), temp("temp", -30, 30, true), speed("speed",
-				0, 100, true), co2("co2", 0, 100, true), rh("rh", 0, 100, true), pressure(
-				"pressure", 0, 100, true) {
+				"setpoint", 0, 120), temp("temp", -40, 60, true), speed("speed",
+				0, 100, true), co2("co2", 0, 10000, true), rh("rh", 0, 100,
+				true), pressure("pressure", 0, 150, true) {
 	// configure display geometry
 	lcd.begin(16, 2);
 	menu.addProperty(mode);
@@ -30,13 +30,13 @@ LcdUi::LcdUi() :
 }
 
 void LcdUi::update(bool &_mode, int &_goal, int _temp, int _speed, int _co2,
-		int _rh, int _pressure) {
+		int _rh, float _pressure) {
 	int changes = 0;
 
 	changes += mode.changeIfDifferent(_mode);
 	changes += mode.changeIfDifferent(_goal);
 	changes += mode.changeIfDifferent(_temp);
-	changes += mode.changeIfDifferent(_speed);
+	changes += mode.changeIfDifferent((_speed / 10));
 	changes += mode.changeIfDifferent(_co2);
 	changes += mode.changeIfDifferent(_rh);
 	changes += mode.changeIfDifferent(_pressure);
