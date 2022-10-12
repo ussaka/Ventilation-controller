@@ -22,7 +22,6 @@
 #include "Networking.h"
 #include "NumericProperty.h"
 #include "external/ITM_Wrapper.h"
-#include "LcdUi.h"
 
 #include <modbus/ModbusMaster.h>
 #include <modbus/ModbusRegister.h>
@@ -79,7 +78,9 @@ int main(void) {
 
     bool isAutomatic = false;
 	int goal = 0;
+
 	int speed = 0;
+	float speedMultiplier;
 
     I2C i2c(0x40);
 
@@ -123,7 +124,14 @@ int main(void) {
     			isAutomatic = value == "true";
 
     		else if(key == "pressure")
+			{
     			goal = atoi(value.c_str());
+
+    			if(goal < 10) speedMultiplier = 1.0f;
+    			else if(goal < 20) speedMultiplier = 10.0f;
+
+    			else speedMultiplier = 100.0f;
+			}
 
     		else if(key == "speed")
 			{
@@ -133,53 +141,54 @@ int main(void) {
 		}
 	});
 
-	unsigned samples = 0;
-	int result = 0;
+	unsigned minRPM = 100;
+	unsigned maxRPM = 1000;
 
+	unsigned samples = 0;
 	unsigned elapsed = 0;
 
-	LcdUi ui;
+	float result = 0;
 
     while(1)
     {
-    	Networking::poll();
-		JSON status;
+    	Networking::poll(10);
+    	elapsed += 10;
 
-    	i2c.write(0XF1);
-
-    	bool ok;
-    	const uint8_t* resp = i2c.getResponse(3, ok);
-
-    	if(ok)
+    	if(elapsed >= 50)
     	{
-    		//	What's the pressure according to the sensor?
-    		int16_t real = resp[0] << 8 | resp[1];
-    		result = (static_cast <float> (real) / scaleFactor) * altitudeCorrection;
+			JSON status;
+			i2c.write(0XF1);
 
-			if(isAutomatic)
+			bool ok;
+			const uint8_t* resp = i2c.getResponse(3, ok);
+
+			if(ok)
 			{
-				if(result < goal)
-				{
-					speed += 5;
-					AO1.write(speed);
-				}
+				//	What's the pressure according to the sensor?
+				int16_t real = resp[0] << 8 | resp[1];
+				result = (static_cast <float> (real) / scaleFactor) * altitudeCorrection;
 
-				else
+				if(isAutomatic)
 				{
-					speed -= 5;
+					float relation = result / goal;
+					float percentage = 1.0f - relation;
+
+					speed += speedMultiplier * percentage;
+
+					if(speed > maxRPM) speed = maxRPM;
+					else if(speed < minRPM) speed = minRPM;
+
+					output.print(percentage, "% -> Speed ", speed);
 					AO1.write(speed);
 				}
 			}
-    	}
 
-    	else
-    	{
-    		output.print("No response");
-    	}
+			else
+			{
+				output.print("No response");
+			}
 
-    	if(elapsed >= 250)
-    	{
-    		output.print("Sending status");
+    		//output.print("Sending status");
 
 			status.add("nr", samples);
     		status.add("pressure", result);
@@ -205,9 +214,6 @@ int main(void) {
 
     		elapsed = 0;
     	}
-    	ui.update();
-    	Sleep(25);
-    	elapsed+=25;
     }
 
     return 0 ;

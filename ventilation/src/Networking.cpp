@@ -17,11 +17,12 @@ public:
 		count++;
 	}
 
-	static void poll()
+	static void poll(unsigned ms)
 	{
 		for(unsigned i = 0; i < count; i++)
 		{
-			int rc = MQTTYield(&instances[i]->client, 100);
+			//	TODO if there are multiple instances, divide ms by the count
+			int rc = MQTTYield(&instances[i]->client, ms);
 			if(rc != 0)
 				output.print("[", i, "] Return code from yield is ", rc);
 		}
@@ -139,7 +140,7 @@ bool Networking::subscribe(const char* topic, const MessageCallback& cb)
 	return true;
 }
 
-void Networking::poll()
+void Networking::poll(unsigned ms)
 {
-	NetworkingStorage::poll();
+	NetworkingStorage::poll(ms);
 }
