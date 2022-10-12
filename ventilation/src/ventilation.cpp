@@ -83,7 +83,7 @@ int main(void) {
 	int goal = 0;
 
 	int speed = 0;
-	float speedMultiplier;
+	float speedMultiplier = 0.0f;
 
 	I2C i2c(0x40);
 
@@ -113,74 +113,71 @@ int main(void) {
 	ModbusRegister co2Status(&co2, 0x800, false);	// Absolute humidity
 	ModbusRegister hmpStatus(&hmp, 0x200, false);	// Absolute humidity
 
-<<<<<<< HEAD
+	NumericProperty <int> isAutomatic("mode", 0, 1);
+	NumericProperty <int> speedProp("speed", 0, 100, true);
+	NumericProperty <float> pressureProp("pressure", 0, 130, true);
+	NumericProperty <int> setpointProp("setpoint", 0, 120, false, 5);
+
+	isAutomatic.setValue(0);
+	LcdUi ui(isAutomatic, speedProp, pressureProp, setpointProp);
+
+	ui.onValueChange = [&](Property& property)
+	{
+		bool setSetpoint = false;
+
+		if(&property == &isAutomatic)
+			setSetpoint = true;
+
+		if(setSetpoint || &property == &setpointProp)
+		{
+			if(isAutomatic.getRealValue())
+			{
+				goal = setpointProp.getRealValue();
+
+				if(goal < 10) speedMultiplier = 1.0f;
+				else if(goal < 20) speedMultiplier = 10.0f;
+				else speedMultiplier = 100.0f;
+			}
+
+			else
+			{
+				speed = setpointProp.getRealValue();
+				speedProp.setValue(speed);
+				AO1.write(speed * 10);
+			}
+		}
+	};
+
 	net.subscribe("controller/settings", [&](const std::string& data)
 	{
     	JSON json(data);
-=======
-	NumericProperty <int> isAutomatic("mode", 0, 1);
-	NumericProperty <int> speedProp("speed", 0, 100, false, 5);
-	NumericProperty <float> pressureProp("pressure", 0, 130, true);
-	NumericProperty <int> setpointProp("setpoint", 0, 120);
-
-	LcdUi ui(isAutomatic, speedProp, pressureProp, setpointProp);
-
->>>>>>> lcd_ui
-
-	isAutomatic.setValue(0);
-
-<<<<<<< HEAD
-    	//	Parse the received JSON
-    	while(json.next(key, value))
-		{
-    		//	Set automatic state
-    		if(key == "auto")
-    			isAutomatic = value == "true";
-=======
-	net.subscribe("controller/settings", [&](const std::string &data) {
-		output.print("DATA '", data, "'");
-		JSON json(data);
->>>>>>> lcd_ui
 
 		std::string key;
 		std::string value;
 
-<<<<<<< HEAD
-    			//	Smaller goal pressure values require some precision so use smaller values
-    			if(goal < 10.0f) speedMultiplier = 2.0f;
-    			else if(goal < 20.0f) speedMultiplier = 5.0f;
-    			else speedMultiplier = 50.0f;
-			}
-
-    		else if(key == "speed")
-			{
-    			//	Set the fan speed
-    			speed = atoi(value.c_str()) * 10;
-    			AO1.write(speed);
-=======
+    	//	Parse the received JSON
 		while (json.next(key, value)) {
-			if (key == "auto") {
-				isAutomatic.setValue(value == "true");
-			}
 
+			//	Should automatic mode be set?
+			if (key == "auto")
+				isAutomatic.setValue(value == "true");
+
+			//	Should goal pressure be set
 			else if (key == "pressure") {
 				goal = atoi(value.c_str());
 				setpointProp.setValue(goal);
 
-				if (goal < 10)
-					speedMultiplier = 1.0f;
-				else if (goal < 20)
-					speedMultiplier = 10.0f;
-
-				else
-					speedMultiplier = 100.0f;
+				if(goal < 10) speedMultiplier = 1.0f;
+				else if(goal < 20) speedMultiplier = 10.0f;
+				else speedMultiplier = 100.0f;
 			}
 
+			//	Should fan speed be set
 			else if (key == "speed") {
 				speed = atoi(value.c_str());
 				speedProp.setValue(speed);
+				setpointProp.setValue(speed);
 				AO1.write(speed);
->>>>>>> lcd_ui
 			}
 		}
 	});
@@ -190,10 +187,10 @@ int main(void) {
 
 	unsigned samples = 0;
 	unsigned elapsed = 0;
+	unsigned ui_elapsed = 0;
 
 	float result = 0;
 
-<<<<<<< HEAD
     while(1)
     {
     	//	Poll for MQTT traffic
@@ -203,26 +200,13 @@ int main(void) {
     	//	Gather samples every 50 milliseconds
     	if(elapsed >= 50)
     	{
-=======
-	unsigned ui_elapsed = 0;
 
-	while (1) {
-		Networking::poll(10);
-		elapsed += 10;
-		ui_elapsed += 10;
-
-		if (elapsed >= 50) {
->>>>>>> lcd_ui
 			JSON status;
 			bool ok;
-<<<<<<< HEAD
 
 			//	Read the pressure sensor
 			i2c.write(0XF1);
 			const uint8_t* resp = i2c.getResponse(3, ok);
-=======
-			const uint8_t *resp = i2c.getResponse(3, ok);
->>>>>>> lcd_ui
 
 			if (ok) {
 				//	What's the pressure according to the sensor?
@@ -230,67 +214,48 @@ int main(void) {
 				result = (static_cast<float>(real) / scaleFactor) * altitudeCorrection;
 				pressureProp.setValue(result);
 
-<<<<<<< HEAD
 				//	Should we automatically adjust the fan speed to adjust the pressure?
-				if(isAutomatic)
+				if(isAutomatic.getRealValue())
 				{
-					/*	To know which direction the pressure is moving, let's first calculate
-					 * 	a relation between the result and the goal. The result will always
-					 * 	be < 1 if the pressure is below the goal, and > 1 if the pressure is
-					 * 	above the goal */
-=======
-				if (isAutomatic.getRealValue()) {
->>>>>>> lcd_ui
-					float relation = result / goal;
-					float percentage = 1.0f - relation;
+					if(goal > 0)
+					{
+						/*	To know which direction the pressure is moving, let's first calculate
+						 * 	a relation between the result and the goal. The result will always
+						 * 	be < 1 if the pressure is below the goal, and > 1 if the pressure is
+						 * 	above the goal */
+						float relation = result / goal;
+						float percentage = 1.0f - relation;
 
-					//	Let's use the percentage and a multiplier to get an exponential growth
-					int change = round(speedMultiplier * percentage);
-					speed += change;
+						//	Let's use the percentage and a multiplier to get an exponential growth
+						int change = round(speedMultiplier * percentage);
+						speed += change;
 
-<<<<<<< HEAD
-					//	Clamp the RPM
-					if(speed > maxRPM) speed = maxRPM;
-					else if(speed < minRPM) speed = minRPM;
+						//	Clamp the RPM
+						if(speed > maxRPM) speed = maxRPM;
+						else if(speed < minRPM) speed = minRPM;
 
-					//	Set the fan speed
-=======
-					if (speed > maxRPM)
-						speed = maxRPM;
-					else if (speed < minRPM)
-						speed = minRPM;
+						//	Update the speed property
+						speedProp.setValue(speed / 10);
 
-					speedProp.setValue(speed / 10);
-					output.print(percentage, "% -> Speed ", speed);
->>>>>>> lcd_ui
-					AO1.write(speed);
-				}
+						//	Set the fan speed
+						AO1.write(speed);
+					}
 
-				else
-				{
-					speed = speedProp.getRealValue();
-					setpointProp.setValue(speed);
-					AO1.write(speed * 10);
+					else AO1.write(0);
 				}
 			}
 
-			else {
-				output.print("No response");
-			}
+			else output.print("No response");
 
-<<<<<<< HEAD
 			/*	Now let's add everything necessary to a JSON and
 			 * 	publish it to controller/status */
-=======
-			//output.print("Sending status");
->>>>>>> lcd_ui
 
 			status.add("nr", samples);
 			status.add("pressure", result);
 
 			status.add("setpoint", setpointProp.getRealValue());
 
-			status.add("speed", static_cast<float>(speed));
+			status.add("speed", speedProp.getRealValue());
 			status.addLiteral("auto", isAutomatic.getRealValue() ? "true" : "false");
 			status.addLiteral("error", "false");
 
@@ -303,27 +268,19 @@ int main(void) {
 			status.add("rh", rhValue);
 			status.add("temp", tempValue);
 
-<<<<<<< HEAD
-    		net.publish("controller/status", status.toString());
-
-			samples++;
-    		elapsed = 0;
-    	}
-    }
-=======
 			net.publish("controller/status", status.toString());
-			samples++;
 
+			samples++;
 			elapsed = 0;
 
-			if (ui_elapsed >= 1000) {
+			if(ui_elapsed >= 500)
+			{
 				ui_elapsed = 0;
 				ui.update(tempValue, co2Value, rhValue);
 			}
 		}
 		ui.btnStatusUpdate();
 	}
->>>>>>> lcd_ui
 
 	return 0;
 }

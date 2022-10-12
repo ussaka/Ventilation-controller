@@ -13,6 +13,8 @@
 #include "NumericProperty.h"
 #include "Menu.h"
 
+#include <functional>
+
 class LcdUi {
 public:
 	LcdUi(NumericProperty <int>& mode, NumericProperty <int>& speed, NumericProperty <float>& pressure, NumericProperty <int>& setpoint);
@@ -21,19 +23,19 @@ public:
 	void update(int _temp, int _co2, int _rh);
 	void btnStatusUpdate(void);
 
+	std::function <void(Property& property)> onValueChange;
+
 private:
 	NumericProperty <int>& mode;
 	NumericProperty <int>& speed;
 	NumericProperty <float>& pressure;
 	NumericProperty <int>& setpoint;
 
-
-
 	struct button {
-		button(int port, int pin) :
-				btn(port, pin, DigitalIoPin::pullup, true) {
+		button(int port, int pin) : btn(port, pin, DigitalIoPin::pullup, true)
+		{
 		}
-		;
+
 		DigitalIoPin btn;
 		bool isPressed = false;
 	};

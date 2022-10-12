@@ -16,7 +16,10 @@ public:
 	};
 
 	void send(Event event);
+
 	bool addProperty(Property &property);
+	Property* getSelected() { return properties[selected]; }
+
 	bool isEditing() {
 		return editing;
 	}
@@ -32,7 +35,7 @@ private:
 	unsigned selected = 0;
 	bool editing = false;
 
-	Property *properties[maxProperties];
+	Property* properties[maxProperties];
 };
 
 #endif /* MENU_H_ */

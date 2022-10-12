@@ -63,11 +63,10 @@ public:
 
 	void setValue(int val) {
 		oldValue = val;
+		dirty = true;
 
 		if(menu && !menu->isEditing())
 			value = val;
-
-		dirty = true;
 	}
 
 private:

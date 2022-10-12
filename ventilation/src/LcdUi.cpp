@@ -17,13 +17,13 @@ LcdUi::LcdUi(NumericProperty <int>& mode, NumericProperty <int>& speed, NumericP
 	lcd.begin(16, 2); // configure display geometry
 	// Add menu properties
 
-	//	These properties need to know which menu they are in so they can call display()
+	//	These properties need to know when menu is in edit mode
 	mode.addToMenu(menu);
 	speed.addToMenu(menu);
 	pressure.addToMenu(menu);
 	setpoint.addToMenu(menu);
 
-	//	LcdUi knows which menu there properties are in so it can call display()
+	//	These properties don't need to know their menu
 	menu.addProperty(temp);
 	menu.addProperty(co2);
 	menu.addProperty(rh);
@@ -49,6 +49,11 @@ void LcdUi::btnStatusUpdate(void) {
 				break;
 			case 2: // sw_a4
 				menu.send(Menu::Event::Confirm);
+				if(!menu.isEditing() && onValueChange)
+				{
+					Property* selected = menu.getSelected();
+					onValueChange(*selected);
+				}
 				break;
 			case 3: // sw_a5
 				menu.send(Menu::Event::Back);
@@ -58,8 +63,8 @@ void LcdUi::btnStatusUpdate(void) {
 	}
 }
 
-void LcdUi::update(int _temp, int _co2,
-		int _rh) {
+void LcdUi::update(int _temp, int _co2, int _rh)
+{
 	int changes = 0;
 
 	if (menu.isEditing()) {
@@ -71,12 +76,13 @@ void LcdUi::update(int _temp, int _co2,
 	changes += co2.changeIfDifferent(_co2);
 	changes += rh.changeIfDifferent(_rh);
 
+	//	FIXME Dirty is actually never true
 	changes += mode.isDirty();
 	changes += speed.isDirty();
 	changes += pressure.isDirty();
 	changes += setpoint.isDirty();
 
-	if (changes > 0)
+	if(changes > 0)
 		menu.display(); // Display changes
 }
 
