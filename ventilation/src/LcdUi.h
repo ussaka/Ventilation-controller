@@ -18,7 +18,7 @@ public:
 	LcdUi();
 	virtual ~LcdUi();
 	void read_btns();
-	void update(bool &_mode, int &_goal, int _temp, int _speed, int _co2, int _rh, int _pressure);
+	void update(bool &_mode, int &_goal, int _temp, int _speed, int _co2, int _rh, float _pressure);
 private:
 	struct button {
 		button(int port, int pin) :
