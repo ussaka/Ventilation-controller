@@ -18,7 +18,8 @@ public:
 	LcdUi();
 	virtual ~LcdUi();
 	void read_btns();
-	void update(bool &_mode, int &_goal, int _temp, int _speed, int _co2, int _rh, float _pressure);
+	void update(bool &_mode, int &_goal, int _temp, int _speed, int _co2,
+			int _rh, float _pressure);
 private:
 	struct button {
 		button(int port, int pin) :
@@ -29,10 +30,10 @@ private:
 		bool isPressed = false;
 	};
 
-	//buttons
+	// Buttons
 	button buttons[4];
 
-	// Lcd pins
+	// Lcd display pins
 	DigitalIoPin rs;
 	DigitalIoPin en;
 	DigitalIoPin d4;
