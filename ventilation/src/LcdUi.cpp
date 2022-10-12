@@ -7,44 +7,31 @@
 
 #include "LcdUi.h"
 
-LcdUi::LcdUi() :
+LcdUi::LcdUi(NumericProperty <int>& mode, NumericProperty <int>& speed, NumericProperty <float>& pressure, NumericProperty <int>& setpoint)
+	: mode(mode), speed(speed), pressure(pressure), setpoint(setpoint),
 		buttons( { { 1, 8 }, { 0, 5 }, { 0, 6 }, { 0, 7 } }), rs(0, 29,
 				DigitalIoPin::output), en(0, 9, DigitalIoPin::output), d4(0, 10,
 				DigitalIoPin::output), d5(0, 16, DigitalIoPin::output), d6(1, 3,
 				DigitalIoPin::output), d7(0, 0, DigitalIoPin::output), lcd(&rs,
-				&en, &d4, &d5, &d6, &d7), menu(lcd), mode("mode", 0, 1), setpoint(
-				"setpoint", 0, 120), temp("temp", -40, 60, true), speed("speed",
-				0, 100, true), co2("co2", 0, 10000, true), rh("rh", 0, 100,
-				true), pressure("pressure", 0, 150, true) {
+				&en, &d4, &d5, &d6, &d7), menu(lcd), temp("temp", -40, 60, true), co2("co2", 0, 10000, true), rh("rh", 0, 100, true) {
 	lcd.begin(16, 2); // configure display geometry
 	// Add menu properties
-	menu.addProperty(mode);
-	menu.addProperty(setpoint);
+
+	//	These properties need to know which menu they are in so they can call display()
+	mode.addToMenu(menu);
+	speed.addToMenu(menu);
+	pressure.addToMenu(menu);
+	setpoint.addToMenu(menu);
+
+	//	LcdUi knows which menu there properties are in so it can call display()
 	menu.addProperty(temp);
-	menu.addProperty(speed);
 	menu.addProperty(co2);
 	menu.addProperty(rh);
-	menu.addProperty(pressure);
 
 	menu.display(); // Display changes
 }
 
-void LcdUi::update(bool &_mode, int &_goal, int _temp, int _speed, int _co2,
-		int _rh, float _pressure) {
-	int changes = 0;
-
-	// Check if values were changed outside the menu
-	changes += mode.changeIfDifferent(_mode);
-	changes += mode.changeIfDifferent(_goal);
-	changes += mode.changeIfDifferent(_temp);
-	changes += mode.changeIfDifferent((_speed / 10));
-	changes += mode.changeIfDifferent(_co2);
-	changes += mode.changeIfDifferent(_rh);
-	changes += mode.changeIfDifferent(_pressure);
-
-	if (changes > 0)
-		menu.display(); // Display changes
-
+void LcdUi::btnStatusUpdate(void) {
 	// Check if any of the buttons were pressed
 	for (int i = 0; i < 4; i++) {
 		if (buttons[i].btn.read()) {
@@ -69,9 +56,28 @@ void LcdUi::update(bool &_mode, int &_goal, int _temp, int _speed, int _co2,
 			}
 		}
 	}
-	// Update mode and pressure target goal with values from the ui
-	_mode = mode.getRealValue();
-	_goal = setpoint.getRealValue();
+}
+
+void LcdUi::update(int _temp, int _co2,
+		int _rh) {
+	int changes = 0;
+
+	if (menu.isEditing()) {
+		return;
+	}
+
+	// Check if values were changed outside the menu
+	changes += temp.changeIfDifferent(_temp);
+	changes += co2.changeIfDifferent(_co2);
+	changes += rh.changeIfDifferent(_rh);
+
+	changes += mode.isDirty();
+	changes += speed.isDirty();
+	changes += pressure.isDirty();
+	changes += setpoint.isDirty();
+
+	if (changes > 0)
+		menu.display(); // Display changes
 }
 
 LcdUi::~LcdUi() {

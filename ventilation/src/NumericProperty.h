@@ -2,6 +2,7 @@
 #define NUMERICPROPERTY_H_
 
 #include "Property.h"
+#include "Menu.h"
 
 #include <type_traits>
 #include <sstream>
@@ -46,7 +47,7 @@ public:
 		if (discard)
 			value = oldValue;
 
-		oldValue = value;
+		else oldValue = value;
 	}
 
 	void input(bool up) override
@@ -61,8 +62,12 @@ public:
 	}
 
 	void setValue(int val) {
-		value = val;
-		oldValue = value;
+		oldValue = val;
+
+		if(menu && !menu->isEditing())
+			value = val;
+
+		dirty = true;
 	}
 
 private:
