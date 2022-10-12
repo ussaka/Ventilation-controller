@@ -10,21 +10,38 @@
 
 #include "DigitalIoPin.h"
 #include "LiquidCrystal.h"
+#include "NumericProperty.h"
+#include "Menu.h"
 
 class LcdUi {
 public:
-	LcdUi();
+	LcdUi(NumericProperty <int>& mode, NumericProperty <int>& speed, NumericProperty <float>& pressure, NumericProperty <int>& setpoint);
 	virtual ~LcdUi();
 	void read_btns();
-	int update(std::string val);
-private:
-	//buttons
-	DigitalIoPin sw_a2;
-	DigitalIoPin sw_a3;
-	DigitalIoPin sw_a4;
-	DigitalIoPin sw_a5;
+	void update(int _temp, int _co2, int _rh);
+	void btnStatusUpdate(void);
 
-	// Lcd pins
+private:
+	NumericProperty <int>& mode;
+	NumericProperty <int>& speed;
+	NumericProperty <float>& pressure;
+	NumericProperty <int>& setpoint;
+
+
+
+	struct button {
+		button(int port, int pin) :
+				btn(port, pin, DigitalIoPin::pullup, true) {
+		}
+		;
+		DigitalIoPin btn;
+		bool isPressed = false;
+	};
+
+	// Buttons
+	button buttons[4];
+
+	// Lcd display pins
 	DigitalIoPin rs;
 	DigitalIoPin en;
 	DigitalIoPin d4;
@@ -33,8 +50,12 @@ private:
 	DigitalIoPin d7;
 
 	LiquidCrystal lcd;
-	int menu_pos = 0;
-	bool set_val = false;
+
+	Menu menu;
+
+	NumericProperty<float> temp;
+	NumericProperty<float> co2;
+	NumericProperty<float> rh;
 };
 
 #endif /* LCDUI_H_ */

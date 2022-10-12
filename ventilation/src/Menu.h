@@ -5,35 +5,34 @@
 #include "LiquidCrystal.h"
 #include "external/ITM_Wrapper.h"
 
-class Menu
-{
+class Menu {
 public:
-	Menu(LiquidCrystal& lcd) : lcd(lcd)
-	{
+	Menu(LiquidCrystal &lcd) :
+			lcd(lcd) {
 	}
 
-	enum class Event
-	{
-		Confirm, Back,
-		Up, Down
+	enum class Event {
+		Confirm, Back, Up, Down
 	};
 
 	void send(Event event);
-	bool addProperty(Property& property);
-
+	bool addProperty(Property &property);
+	bool isEditing() {
+		return editing;
+	}
 	void display();
 
 private:
-	LiquidCrystal& lcd;
+	LiquidCrystal &lcd;
 	void clearDisplay();
 
-	const static unsigned maxProperties = 5;
+	const static unsigned maxProperties = 10;
 	unsigned count = 0;
 
 	unsigned selected = 0;
 	bool editing = false;
 
-	Property* properties[maxProperties];
+	Property *properties[maxProperties];
 };
 
 #endif /* MENU_H_ */
