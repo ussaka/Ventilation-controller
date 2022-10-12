@@ -28,6 +28,7 @@
 
 #include <cr_section_macros.h>
 #include <atomic>
+#include <cmath>
 
 #ifdef __cplusplus
 extern "C" {
@@ -112,14 +113,15 @@ int main(void) {
 
 	net.subscribe("controller/settings", [&](const std::string& data)
 	{
-    	output.print("DATA '", data, "'");
     	JSON json(data);
 
     	std::string key;
     	std::string value;
 
+    	//	Parse the received JSON
     	while(json.next(key, value))
 		{
+    		//	Set automatic state
     		if(key == "auto")
     			isAutomatic = value == "true";
 
@@ -127,22 +129,23 @@ int main(void) {
 			{
     			goal = atoi(value.c_str());
 
-    			if(goal < 10) speedMultiplier = 1.0f;
-    			else if(goal < 20) speedMultiplier = 10.0f;
-
-    			else speedMultiplier = 100.0f;
+    			//	Smaller goal pressure values require some precision so use smaller values
+    			if(goal < 10.0f) speedMultiplier = 2.0f;
+    			else if(goal < 20.0f) speedMultiplier = 5.0f;
+    			else speedMultiplier = 50.0f;
 			}
 
     		else if(key == "speed")
 			{
+    			//	Set the fan speed
     			speed = atoi(value.c_str()) * 10;
     			AO1.write(speed);
 			}
 		}
 	});
 
-	unsigned minRPM = 100;
-	unsigned maxRPM = 1000;
+	const unsigned minRPM = 100;
+	const unsigned maxRPM = 1000;
 
 	unsigned samples = 0;
 	unsigned elapsed = 0;
@@ -151,15 +154,18 @@ int main(void) {
 
     while(1)
     {
+    	//	Poll for MQTT traffic
     	Networking::poll(10);
     	elapsed += 10;
 
+    	//	Gather samples every 50 milliseconds
     	if(elapsed >= 50)
     	{
 			JSON status;
-			i2c.write(0XF1);
-
 			bool ok;
+
+			//	Read the pressure sensor
+			i2c.write(0XF1);
 			const uint8_t* resp = i2c.getResponse(3, ok);
 
 			if(ok)
@@ -168,17 +174,25 @@ int main(void) {
 				int16_t real = resp[0] << 8 | resp[1];
 				result = (static_cast <float> (real) / scaleFactor) * altitudeCorrection;
 
+				//	Should we automatically adjust the fan speed to adjust the pressure?
 				if(isAutomatic)
 				{
+					/*	To know which direction the pressure is moving, let's first calculate
+					 * 	a relation between the result and the goal. The result will always
+					 * 	be < 1 if the pressure is below the goal, and > 1 if the pressure is
+					 * 	above the goal */
 					float relation = result / goal;
 					float percentage = 1.0f - relation;
 
-					speed += speedMultiplier * percentage;
+					//	Let's use the percentage and a multiplier to get an exponential growth
+					int change = round(speedMultiplier * percentage);
+					speed += change;
 
+					//	Clamp the RPM
 					if(speed > maxRPM) speed = maxRPM;
 					else if(speed < minRPM) speed = minRPM;
 
-					output.print(percentage, "% -> Speed ", speed);
+					//	Set the fan speed
 					AO1.write(speed);
 				}
 			}
@@ -188,7 +202,8 @@ int main(void) {
 				output.print("No response");
 			}
 
-    		//output.print("Sending status");
+			/*	Now let's add everything necessary to a JSON and
+			 * 	publish it to controller/status */
 
 			status.add("nr", samples);
     		status.add("pressure", result);
@@ -210,8 +225,8 @@ int main(void) {
     		status.add("temp", tempValue);
 
     		net.publish("controller/status", status.toString());
-			samples++;
 
+			samples++;
     		elapsed = 0;
     	}
     }

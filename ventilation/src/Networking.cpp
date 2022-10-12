@@ -5,11 +5,23 @@
 
 static ITM_Wrapper output;
 
+/*	NetworkingStorage is a class that holds every instance
+ * 	of "Networking". For this project it isn't really necessary
+ * 	but if there were multiple instances of "Networking", this
+ * 	class is helpful for mass polling for MQTT traffic.
+ *
+ *	The MQTT client also requires a callback when subscribing to
+ *	some topic. Problem is that the callback cannot point to
+ *	a class member function and cannot capture anything, so we
+ *	cannot use said callback itself to check which client a
+ *	message should go to. This class takes that message and forwards
+ *	the message to whoever is subscribed to the topic */
 class NetworkingStorage
 {
 public:
 	static void add(Networking* networking)
 	{
+		//	Don't save instances past the maximum
 		if(count >= Networking::maxInstances)
 			return;
 
@@ -19,6 +31,7 @@ public:
 
 	static void poll(unsigned ms)
 	{
+		//	Poll each client
 		for(unsigned i = 0; i < count; i++)
 		{
 			//	TODO if there are multiple instances, divide ms by the count
@@ -30,13 +43,17 @@ public:
 
 	static void send(MessageData* data)
 	{
+		//	Loop through each instance
 		for(unsigned i = 0; i < count; i++)
 		{
+			//	Loop through each topic of the instance
 			for(unsigned t = 0; t < instances[i]->topicCount; t++)
 			{
+				//	Is this message targeted to this topic of this instance
 				if(	strcmp(data->topicName->cstring,
 					instances[i]->topics[t].first))
 				{
+					//	Call the message callback if one is set
 					if(instances[i]->topics[t].second)
 					{
 						std::string msg((const char*)data->message->payload, data->message->payloadlen);
