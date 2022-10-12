@@ -22,6 +22,7 @@
 #include "Networking.h"
 #include "NumericProperty.h"
 #include "external/ITM_Wrapper.h"
+#include "LcdUi.h"
 
 #include <modbus/ModbusMaster.h>
 #include <modbus/ModbusRegister.h>
@@ -81,6 +82,8 @@ int main(void) {
 
 	int speed = 0;
 	float speedMultiplier;
+
+	LcdUi ui;
 
     I2C i2c(0x40);
 
@@ -213,6 +216,7 @@ int main(void) {
 			samples++;
 
     		elapsed = 0;
+    		ui.update(isAutomatic, goal, tempValue, speed, co2Value, rhValue, result);
     	}
     }
 
