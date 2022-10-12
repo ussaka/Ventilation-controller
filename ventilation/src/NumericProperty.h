@@ -28,6 +28,19 @@ public:
 		return oldValue;
 	}
 
+	bool changeIfDifferent(T newValue)
+	{
+		if(newValue != value)
+		{
+			value = newValue;
+			oldValue = value;
+
+			return true;
+		}
+
+		return false;
+	}
+
 	void stopEdit(bool discard) override
 	{
 		if (discard)

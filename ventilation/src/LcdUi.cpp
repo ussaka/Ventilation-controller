@@ -29,14 +29,20 @@ LcdUi::LcdUi() :
 	menu.display();
 }
 
-void LcdUi::update(bool &_mode, int &_goal, int _temp, int _speed, int _co2, int _rh, int _pressure) {
-	mode.setValue(_mode);
-	setpoint.setValue(_goal);
-	temp.setValue(_temp);
-	speed.setValue(_speed);
-	co2.setValue(_co2);
-	rh.setValue(_rh);
-	pressure.setValue(_pressure);
+void LcdUi::update(bool &_mode, int &_goal, int _temp, int _speed, int _co2,
+		int _rh, int _pressure) {
+	int changes = 0;
+
+	changes += mode.changeIfDifferent(_mode);
+	changes += mode.changeIfDifferent(_goal);
+	changes += mode.changeIfDifferent(_temp);
+	changes += mode.changeIfDifferent(_speed);
+	changes += mode.changeIfDifferent(_co2);
+	changes += mode.changeIfDifferent(_rh);
+	changes += mode.changeIfDifferent(_pressure);
+
+	if (changes > 0)
+		menu.display();
 
 	for (int i = 0; i < 4; i++) {
 		if (buttons[i].btn.read()) {
