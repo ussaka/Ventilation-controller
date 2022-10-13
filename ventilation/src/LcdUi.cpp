@@ -44,10 +44,10 @@ void LcdUi::btnStatusUpdate(void) {
 			// Handle button presses
 			switch (i) {
 			case 0: // sw_a2
-				menu.send(Menu::Event::Up);
+				menu.send(Menu::Event::Down);
 				break;
 			case 1: // sw_a3
-				menu.send(Menu::Event::Down);
+				menu.send(Menu::Event::Up);
 				break;
 			case 2: // sw_a4
 				menu.send(Menu::Event::Confirm);
