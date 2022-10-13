@@ -7,26 +7,28 @@
 
 #include "LcdUi.h"
 
-LcdUi::LcdUi(NumericProperty <int>& mode, NumericProperty <int>& speed, NumericProperty <float>& pressure, NumericProperty <int>& setpoint)
-	: mode(mode), speed(speed), pressure(pressure), setpoint(setpoint),
-		buttons( { { 1, 8 }, { 0, 5 }, { 0, 6 }, { 0, 7 } }), rs(0, 29,
+LcdUi::LcdUi(NumericProperty<int> &mode, NumericProperty<int> &speed,
+		NumericProperty<float> &pressure, NumericProperty<int> &setpoint) :
+		mode(mode), speed(speed), pressure(pressure), setpoint(setpoint), buttons(
+				{ { 1, 8 }, { 0, 5 }, { 0, 6 }, { 0, 7 } }), rs(0, 29,
 				DigitalIoPin::output), en(0, 9, DigitalIoPin::output), d4(0, 10,
 				DigitalIoPin::output), d5(0, 16, DigitalIoPin::output), d6(1, 3,
 				DigitalIoPin::output), d7(0, 0, DigitalIoPin::output), lcd(&rs,
-				&en, &d4, &d5, &d6, &d7), menu(lcd), temp("temp", -40, 60, true), co2("co2", 0, 10000, true), rh("rh", 0, 100, true) {
+				&en, &d4, &d5, &d6, &d7), menu(lcd), temp("temp", -40, 60,
+				true), co2("co2", 0, 10000, true), rh("rh", 0, 100, true) {
 	lcd.begin(16, 2); // configure display geometry
 	// Add menu properties
 
 	//	These properties need to know when menu is in edit mode
 	mode.addToMenu(menu);
+	setpoint.addToMenu(menu);
 	speed.addToMenu(menu);
 	pressure.addToMenu(menu);
-	setpoint.addToMenu(menu);
 
 	//	These properties don't need to know their menu
 	menu.addProperty(temp);
-	menu.addProperty(co2);
 	menu.addProperty(rh);
+	menu.addProperty(co2);
 
 	menu.display(); // Display changes
 }
@@ -49,9 +51,8 @@ void LcdUi::btnStatusUpdate(void) {
 				break;
 			case 2: // sw_a4
 				menu.send(Menu::Event::Confirm);
-				if(!menu.isEditing() && onValueChange)
-				{
-					Property* selected = menu.getSelected();
+				if (!menu.isEditing() && onValueChange) {
+					Property *selected = menu.getSelected();
 					onValueChange(*selected);
 				}
 				break;
@@ -63,8 +64,7 @@ void LcdUi::btnStatusUpdate(void) {
 	}
 }
 
-void LcdUi::update(int _temp, int _co2, int _rh)
-{
+void LcdUi::update(int _temp, int _co2, int _rh) {
 	int changes = 0;
 
 	if (menu.isEditing()) {
@@ -81,7 +81,7 @@ void LcdUi::update(int _temp, int _co2, int _rh)
 	changes += pressure.isDirty();
 	changes += setpoint.isDirty();
 
-	if(changes > 0)
+	if (changes > 0)
 		menu.display(); // Display changes
 }
 
