@@ -87,8 +87,9 @@ int main(void) {
 
 	int speed = 0;
 
-	const float defaultSpeedMultiplier = 0.0f;
+	const float defaultSpeedMultiplier = 10.0f;
 	float speedMultiplier = 0.0f;
+	unsigned stalls = 0;
 
 	I2C i2c(0x40);
 
@@ -111,18 +112,18 @@ int main(void) {
 	ModbusRegister AO1(&fan, 0);
 	AO1.write(0);
 
-	ModbusRegister co2Data(&co2, 0x100, false);
+	ModbusRegister co2Status(&co2, 0x800, true);
+	ModbusRegister hmpStatus(&hmp, 0x200, true);
+
+	ModbusRegister co2Data(&co2, 0x100, true);
 
 	//	Relative humidity
-	ModbusRegister humidityData(&hmp, 0x100, false);
-	ModbusRegister temperatureData(&hmp, 0x101, false);
-
-	ModbusRegister co2Status(&co2, 0x800, false);	// Absolute humidity
-	ModbusRegister hmpStatus(&hmp, 0x200, false);	// Absolute humidity
+	ModbusRegister humidityData(&hmp, 0x100, true);
+	ModbusRegister temperatureData(&hmp, 0x101, true);
 
 	NumericProperty <int> isAutomatic("mode", 0, 1);
 	NumericProperty <int> speedProp("speed", 0, 100, true);
-	NumericProperty <float> pressureProp("pressure", 0, 130, true);
+	NumericProperty <int> pressureProp("pressure", 0, 130, true);
 	NumericProperty <int> setpointProp("setpoint", 0, 120, false, 5);
 
 	isAutomatic.setValue(0);
@@ -145,6 +146,7 @@ int main(void) {
 			{
 				goal = setpointProp.getRealValue();
 				speedMultiplier = defaultSpeedMultiplier;
+				stalls = 0;
 			}
 
 			//	Update the speed
@@ -176,6 +178,7 @@ int main(void) {
 				goal = atoi(value.c_str());
 				setpointProp.setValue(goal);
 				speedMultiplier = defaultSpeedMultiplier;
+				stalls = 0;
 			}
 
 			//	Should fan speed be set
@@ -191,93 +194,88 @@ int main(void) {
 	const int minRPM = 0;
 	const int maxRPM = 1000;
 
-	unsigned stalls = 0;
 	unsigned samples = 0;
 
 	unsigned elapsed = 0;
-	unsigned ui_elapsed = 0;
-
 	float result = 0;
-
-	output.print("Start");
 
     while(1)
     {
     	//	Poll for MQTT traffic
-    	Networking::poll(10);
-    	ui_elapsed += 10;
-    	elapsed += 10;
+    	Networking::poll(50);
+    	elapsed += 50;
 
-    	//	Gather samples every 50 milliseconds
-    	if(elapsed >= 50)
-    	{
+		bool ok;
 
-			JSON status;
-			bool ok;
+		//	Read the pressure sensor
+		i2c.write(0XF1);
+		const uint8_t* resp = i2c.getResponse(3, ok);
 
-			//	Read the pressure sensor
-			i2c.write(0XF1);
-			const uint8_t* resp = i2c.getResponse(3, ok);
+		//	Did we get a response?
+		if(ok)
+		{
+			//	What's the pressure according to the sensor?
+			int16_t real = resp[0] << 8 | resp[1];
+			result = (static_cast<float>(real) / scaleFactor) * altitudeCorrection;
+			pressureProp.setValue(result);
 
-			if (ok) {
-				//	What's the pressure according to the sensor?
-				int16_t real = resp[0] << 8 | resp[1];
-				result = (static_cast<float>(real) / scaleFactor) * altitudeCorrection;
-				pressureProp.setValue(result);
-
-				//	Should we automatically adjust the fan speed to adjust the pressure?
-				if(isAutomatic.getRealValue())
+			//	Should we automatically adjust the fan speed to adjust the pressure?
+			if(isAutomatic.getRealValue())
+			{
+				if(goal > 0)
 				{
-					if(goal > 0)
+					/*	To know which direction the pressure is moving, let's first calculate
+					 * 	a relation between the result and the goal. The result will always
+					 * 	be < 1 if the pressure is below the goal, and > 1 if the pressure is
+					 * 	above the goal */
+					float relation = result / goal;
+					float percentage = 1.0f - relation;
+
+					//	Let's use the percentage and a multiplier to get an exponential growth
+					int change = round(speedMultiplier * percentage);
+					speed += change;
+
+					//	Clamp the RPM
+					if(speed > maxRPM) speed = maxRPM;
+					else if(speed < minRPM) speed = minRPM;
+
+					//	Update the speed property
+					speedProp.setValue(speed / 10);
+
+					//	Set the fan speed
+					AO1.write(speed);
+
+					/*	With the real ventilation system the fan is is so powerful that
+					 * 	we have to decrease the speed multiplier over time. It seems
+					 * 	that this happens mostly with value below 50, so when
+					 * 	there are enough stalls, try to halve the multiplier */
+					if(goal < 50 && abs(goal - result) > 3)
 					{
-						/*	To know which direction the pressure is moving, let's first calculate
-						 * 	a relation between the result and the goal. The result will always
-						 * 	be < 1 if the pressure is below the goal, and > 1 if the pressure is
-						 * 	above the goal */
-						float relation = result / goal;
-						float percentage = 1.0f - relation;
-
-						//	Let's use the percentage and a multiplier to get an exponential growth
-						int change = round(speedMultiplier * percentage);
-						speed += change;
-
-						//	Clamp the RPM
-						if(speed > maxRPM) speed = maxRPM;
-						else if(speed < minRPM) speed = minRPM;
-
-						//	Update the speed property
-						speedProp.setValue(speed / 10);
-
-						//	Set the fan speed
-						AO1.write(speed);
-
-						/*	With the real ventilation system the fan is is so powerful that
-						 * 	we have to decrease the speed multiplier over time. It seems
-						 * 	that this happens mostly with value below 50, so when
-						 * 	there are enough stalls, try to halve the multiplier */
-						if(goal < 50 && abs(goal - result) > 3)
+						if(++stalls > 60)
 						{
-							if(++stalls > 60)
-							{
-								output.print("halve mutltiplier");
-								speedMultiplier = std::max(2.0, ceil(speedMultiplier / 2));
-								stalls = 0;
-							}
+							speedMultiplier = std::max(2.0, ceil(speedMultiplier / 2));
+							stalls = 0;
 						}
 					}
-
-					//	The goal is 0 so turn off the fan
-					else AO1.write(0);
 				}
-			}
 
-			else output.print("No response");
+				//	The goal is 0 so turn off the fan
+				else AO1.write(0);
+			}
+		}
+
+		else output.print("No response");
+
+		//	Gather samples every 50 milliseconds
+    	if(elapsed >= 500)
+    	{
+			JSON status;
 
 			/*	Now let's add everything necessary to a JSON and
 			 * 	publish it to controller/status */
 
 			status.add("nr", samples);
-			status.add("pressure", result);
+			status.add("pressure", pressureProp.getRealValue());
 
 			status.add("setpoint", setpointProp.getRealValue());
 
@@ -285,31 +283,42 @@ int main(void) {
 			status.addLiteral("auto", isAutomatic.getRealValue() ? "true" : "false");
 			status.addLiteral("error", "false");
 
-			// FIXME Read status before reading value
-			//int co2Value = co2Data.read();
-			//int rhValue = humidityData.read();
-			//int tempValue = temperatureData.read();
+			int co2Value = 0;
+			int rhValue = 0;
+			int tempValue = 0;
 
-			//status.add("co2", co2Value);
-			//status.add("rh", rhValue);
-			//status.add("temp", tempValue);
-			status.add("co2", 0);
-			status.add("rh", 0);
-			status.add("temp", 0);
+			Sleep(5);
+
+			if(hmpStatus.read())
+			{
+				Sleep(5);
+				tempValue = temperatureData.read() / 10;
+
+				Sleep(5);
+				rhValue = humidityData.read() / 10;
+			}
+
+			Sleep(5);
+			if(co2Status.read() == 0)
+			{
+				Sleep(5);
+				co2Value = co2Data.read();
+			}
+
+
+			status.add("co2", co2Value);
+			status.add("rh", rhValue);
+			status.add("temp", tempValue);
 
 			//	Publish the status JSON
 			net.publish("controller/status", status.toString());
 
+			//	The sensor polling takes about 25 ms if it succeeds
+			elapsed = 25;
 			samples++;
-			elapsed = 0;
 
-			//	Update the LCD UI occasionally
-			if(ui_elapsed >= 500)
-			{
-				ui_elapsed = 0;
-				//ui.update(tempValue, co2Value, rhValue);
-				ui.update(0, 0, 0);
-			}
+			//	Update some values on the LCD
+			ui.update(tempValue, co2Value, rhValue);
 		}
 
     	//	Check for LCD UI button presses
