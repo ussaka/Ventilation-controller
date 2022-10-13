@@ -57,7 +57,7 @@ void Menu::display()
 	clearDisplay();
 
 	Property& p = *properties[selected];
-	lcd.print(std::to_string(selected + 1) + "." + p.getName() + "(" + p.getRange() + ")\n" + (editing ? "* " : "") + p.getValue());
+	lcd.print(p.getName() + "(" + p.getRange() + ")\n" + (editing ? "* " : "") + p.getValue());
 }
 
 void Menu::clearDisplay()
