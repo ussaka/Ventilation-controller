@@ -19,12 +19,12 @@ void Menu::send(Event event)
 
 	switch(event)
 	{
-		case Event::Up:
+		case Event::Down:
 			if(--selected >= count)
 				selected = count - 1;
 		break;
 
-		case Event::Down:
+		case Event::Up:
 			if(++selected >= count)
 				selected = 0;
 		break;
