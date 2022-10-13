@@ -90,7 +90,8 @@ int main(void) {
 	ITM_Wrapper output;
 	output.print("Test");
 
-	Networking net("OnePlus Nord N10 5G", "salsasana666", "192.168.83.223");
+	//	Connect to the MQTT broker
+	Networking net("OnePlus Nord N10 5G", "salsasana666", "192.168.91.223");
 
 	ModbusMaster fan(1);
 	fan.begin(9600);
@@ -121,15 +122,19 @@ int main(void) {
 	isAutomatic.setValue(0);
 	LcdUi ui(isAutomatic, speedProp, pressureProp, setpointProp);
 
+	//	What happens when the user changed a value through the LCD
 	ui.onValueChange = [&](Property& property)
 	{
 		bool setSetpoint = false;
 
+		//	If mode was changed, read setpoint
 		if(&property == &isAutomatic)
 			setSetpoint = true;
 
+		//	If setpoint or mode was changed, update values
 		if(setSetpoint || &property == &setpointProp)
 		{
+			//	Update the goal
 			if(isAutomatic.getRealValue())
 			{
 				goal = setpointProp.getRealValue();
@@ -139,6 +144,7 @@ int main(void) {
 				else speedMultiplier = 100.0f;
 			}
 
+			//	Update the speed
 			else
 			{
 				speed = setpointProp.getRealValue();
@@ -195,6 +201,7 @@ int main(void) {
     {
     	//	Poll for MQTT traffic
     	Networking::poll(10);
+    	ui_elapsed += 10;
     	elapsed += 10;
 
     	//	Gather samples every 50 milliseconds
@@ -241,6 +248,7 @@ int main(void) {
 						AO1.write(speed);
 					}
 
+					//	The goal is 0 so turn off the fan
 					else AO1.write(0);
 				}
 			}
@@ -268,17 +276,21 @@ int main(void) {
 			status.add("rh", rhValue);
 			status.add("temp", tempValue);
 
+			//	Publish the status JSON
 			net.publish("controller/status", status.toString());
 
 			samples++;
 			elapsed = 0;
 
+			//	Update the LCD UI occasionally
 			if(ui_elapsed >= 500)
 			{
 				ui_elapsed = 0;
 				ui.update(tempValue, co2Value, rhValue);
 			}
 		}
+
+    	//	Check for LCD UI button presses
 		ui.btnStatusUpdate();
 	}
 

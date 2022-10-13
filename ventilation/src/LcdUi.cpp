@@ -76,7 +76,6 @@ void LcdUi::update(int _temp, int _co2, int _rh)
 	changes += co2.changeIfDifferent(_co2);
 	changes += rh.changeIfDifferent(_rh);
 
-	//	FIXME Dirty is actually never true
 	changes += mode.isDirty();
 	changes += speed.isDirty();
 	changes += pressure.isDirty();
