@@ -8,7 +8,7 @@
 #include "LcdUi.h"
 
 LcdUi::LcdUi(NumericProperty<int> &mode, NumericProperty<int> &speed,
-		NumericProperty<float> &pressure, NumericProperty<int> &setpoint) :
+		NumericProperty<int> &pressure, NumericProperty<int> &setpoint) :
 		mode(mode), speed(speed), pressure(pressure), setpoint(setpoint), buttons(
 				{ { 1, 8 }, { 0, 5 }, { 0, 6 }, { 0, 7 } }), rs(0, 29,
 				DigitalIoPin::output), en(0, 9, DigitalIoPin::output), d4(0, 10,

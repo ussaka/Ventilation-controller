@@ -17,7 +17,7 @@
 
 class LcdUi {
 public:
-	LcdUi(NumericProperty <int>& mode, NumericProperty <int>& speed, NumericProperty <float>& pressure, NumericProperty <int>& setpoint);
+	LcdUi(NumericProperty <int>& mode, NumericProperty <int>& speed, NumericProperty <int>& pressure, NumericProperty <int>& setpoint);
 	virtual ~LcdUi();
 	void read_btns();
 	void update(int _temp, int _co2, int _rh);
@@ -28,7 +28,7 @@ public:
 private:
 	NumericProperty <int>& mode;
 	NumericProperty <int>& speed;
-	NumericProperty <float>& pressure;
+	NumericProperty <int>& pressure;
 	NumericProperty <int>& setpoint;
 
 	struct button {
@@ -55,9 +55,9 @@ private:
 
 	Menu menu;
 
-	NumericProperty<float> temp;
-	NumericProperty<float> co2;
-	NumericProperty<float> rh;
+	NumericProperty<int> temp;
+	NumericProperty<int> co2;
+	NumericProperty<int> rh;
 };
 
 #endif /* LCDUI_H_ */
