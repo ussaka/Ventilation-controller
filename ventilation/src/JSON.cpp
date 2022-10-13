@@ -12,11 +12,6 @@ JSON::JSON()
 	data = "{";
 }
 
-void JSON::add(const std::string& key, int value)
-{
-	addLiteral(key, std::to_string(value));
-}
-
 void JSON::addLiteral(const std::string& key, const std::string& value)
 {
 	if(data.length() > 1)

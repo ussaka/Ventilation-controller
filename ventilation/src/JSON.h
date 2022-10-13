@@ -12,7 +12,12 @@ public:
 
 	bool next(std::string& key, std::string& value);
 
-	void add(const std::string& key, int value);
+	template <typename T>
+	void add(const std::string& key, T value)
+	{
+		addLiteral(key, std::to_string(value));
+	}
+
 	void addLiteral(const std::string& key, const std::string& value);
 	std::string toString() { return data + '}'; }
 
