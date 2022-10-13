@@ -50,10 +50,13 @@ void SysTick_Handler(void) {
 
 #include "systick.h"
 
-uint32_t millis() {
+uint32_t millis()
+{
 	return systicks;
 }
-uint32_t get_ticks() {
+
+uint32_t get_ticks()
+{
 	return systicks;
 }
 
@@ -83,6 +86,8 @@ int main(void) {
 	int goal = 0;
 
 	int speed = 0;
+
+	const float defaultSpeedMultiplier = 0.0f;
 	float speedMultiplier = 0.0f;
 
 	I2C i2c(0x40);
@@ -91,7 +96,8 @@ int main(void) {
 	output.print("Test");
 
 	//	Connect to the MQTT broker
-	Networking net("OnePlus Nord N10 5G", "salsasana666", "192.168.91.223");
+	//Networking net("OnePlus Nord N10 5G", "salsasana666", "192.168.91.223");
+	Networking net("SmartIotMQTT", "SmartIot", "192.168.1.254");
 
 	ModbusMaster fan(1);
 	fan.begin(9600);
@@ -138,10 +144,7 @@ int main(void) {
 			if(isAutomatic.getRealValue())
 			{
 				goal = setpointProp.getRealValue();
-
-				if(goal < 10) speedMultiplier = 1.0f;
-				else if(goal < 20) speedMultiplier = 10.0f;
-				else speedMultiplier = 100.0f;
+				speedMultiplier = defaultSpeedMultiplier;
 			}
 
 			//	Update the speed
@@ -172,10 +175,7 @@ int main(void) {
 			else if (key == "pressure") {
 				goal = atoi(value.c_str());
 				setpointProp.setValue(goal);
-
-				if(goal < 10) speedMultiplier = 1.0f;
-				else if(goal < 20) speedMultiplier = 10.0f;
-				else speedMultiplier = 100.0f;
+				speedMultiplier = defaultSpeedMultiplier;
 			}
 
 			//	Should fan speed be set
@@ -183,19 +183,23 @@ int main(void) {
 				speed = atoi(value.c_str());
 				speedProp.setValue(speed);
 				setpointProp.setValue(speed);
-				AO1.write(speed);
+				AO1.write(speed * 10);
 			}
 		}
 	});
 
-	const unsigned minRPM = 100;
-	const unsigned maxRPM = 1000;
+	const int minRPM = 0;
+	const int maxRPM = 1000;
 
+	unsigned stalls = 0;
 	unsigned samples = 0;
+
 	unsigned elapsed = 0;
 	unsigned ui_elapsed = 0;
 
 	float result = 0;
+
+	output.print("Start");
 
     while(1)
     {
@@ -246,6 +250,20 @@ int main(void) {
 
 						//	Set the fan speed
 						AO1.write(speed);
+
+						/*	With the real ventilation system the fan is is so powerful that
+						 * 	we have to decrease the speed multiplier over time. It seems
+						 * 	that this happens mostly with value below 50, so when
+						 * 	there are enough stalls, try to halve the multiplier */
+						if(goal < 50 && abs(goal - result) > 3)
+						{
+							if(++stalls > 60)
+							{
+								output.print("halve mutltiplier");
+								speedMultiplier = std::max(2.0, ceil(speedMultiplier / 2));
+								stalls = 0;
+							}
+						}
 					}
 
 					//	The goal is 0 so turn off the fan
@@ -268,13 +286,16 @@ int main(void) {
 			status.addLiteral("error", "false");
 
 			// FIXME Read status before reading value
-			int co2Value = co2Data.read();
-			int rhValue = humidityData.read();
-			int tempValue = temperatureData.read();
+			//int co2Value = co2Data.read();
+			//int rhValue = humidityData.read();
+			//int tempValue = temperatureData.read();
 
-			status.add("co2", co2Value);
-			status.add("rh", rhValue);
-			status.add("temp", tempValue);
+			//status.add("co2", co2Value);
+			//status.add("rh", rhValue);
+			//status.add("temp", tempValue);
+			status.add("co2", 0);
+			status.add("rh", 0);
+			status.add("temp", 0);
 
 			//	Publish the status JSON
 			net.publish("controller/status", status.toString());
@@ -286,7 +307,8 @@ int main(void) {
 			if(ui_elapsed >= 500)
 			{
 				ui_elapsed = 0;
-				ui.update(tempValue, co2Value, rhValue);
+				//ui.update(tempValue, co2Value, rhValue);
+				ui.update(0, 0, 0);
 			}
 		}
 
